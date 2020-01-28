@@ -1,0 +1,9 @@
+.pio
+.clang_complete
+.gcc-flags.json
+.DS_Store
+ATtiny13*
+*.o
+*.elf
+*.hex
+*.lst

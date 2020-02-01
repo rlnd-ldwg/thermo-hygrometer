@@ -19,11 +19,11 @@ TARGET = stk500v2
 DEVICE = /dev/cu.SLAB_USBtoUART
 SPEED = 115200
 ifeq ($(OS),Windows_NT)
-	AVRTOOLCHAIN = c:/Users/ludwigr/.../avr
-	AVRDUDEPATH = c:/Users/ludwigr/.../avr
+	AVRTOOLCHAIN = c:/.../avr
+	AVRDUDEPATH = c:/.../avr
 else
-	AVRTOOLCHAIN = /Users/roland/.platformio/packages/toolchain-atmelavr/bin
-	AVRDUDEPATH = /Users/roland/.platformio/packages/tool-avrdude/
+	AVRTOOLCHAIN = /.../.platformio/packages/toolchain-atmelavr/bin
+	AVRDUDEPATH = /.../.platformio/packages/tool-avrdude/
 endif
 
 AVRDUDECFG = $(AVRDUDEPATH)/avrdude.conf

@@ -7,3 +7,5 @@ ATtiny13*
 *.elf
 *.hex
 *.lst
+ToDo.md
+Makefile

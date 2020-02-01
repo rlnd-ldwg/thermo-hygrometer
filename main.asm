@@ -20,6 +20,7 @@
 ; v0.1.2 2020-01-26
 ; v0.1.3 2020-01-27
 ; v1.0.0 2020-01-28
+; v1.0.1 2020-01-01: added blinking hearbeat and error message; sorce code optimization
 
 .include "../inc/tn13def.inc"
 
@@ -32,7 +33,7 @@
 
 ;--------------------------------------------------------------------------------
 ; LCD with 3-Wire interface
-.set __DISPLAY_LINES__, 2	; number of display lines
+.set __DISPLAY_LINES__, 2    ; number of display lines
 
 ; define control bits
 .equ _RS, 1     ; register select: data=1, control=0
@@ -63,7 +64,8 @@
 .set rChecksum, 3
 .set rTemp1, 16
 .set rTemp2, 17
-.set rRemainder , 18
+.set rModulo , 18
+.set rHearbeat, 19
 .set rData, 22
 .set rCtrl, 23
 .set rCounterL, 24
@@ -85,7 +87,7 @@
 .equ cFactor, 2                             ; correction factor
 .equ dLoop, (__F_CPU / 4 / 1000) - cFactor  ; ms loop counter
 
-.if (__F_CPU == 6000000)        ; clock 6MHz
+.if __F_CPU == 6000000  ; clock 6MHz
     .warning "6MHz"
     .macro mDelay_us us
         .if (\us - 1)
@@ -99,7 +101,7 @@
             .endr
         .endif
     .endm
-.elseif (__F_CPU >= 12000000)   ; clock 12MHz+
+.elseif __F_CPU >= 12000000 ; clock 12MHz+
     .warning "12MHz+"
     .macro mDelay_us us
         ldi rCounterL, lo8(\us)
@@ -119,7 +121,6 @@
     clr rCtrl
     rcall writeLCD
     .if (\cmd < 4)  ; home or clear instruction needs 1,6ms execution time
-        .warning "clear | home instruction"
         mDelay_us 1563
     .endif
 .endm
@@ -133,7 +134,7 @@
 
 .data
 
-bits:   .space 4    ; 4 byte data from sensor -> humidityH:humidityL:temperatureH:temperatur:L
+bits:   .space 4	; byte data from sensor -> humidityH:humidityL:temperatureH:temperatur:L
 
 .text
 .org 0x0000
@@ -147,16 +148,16 @@ main:
     ldi rTemp1, lo8(RAMEND) ; init stack pointer
     out SPL, rTemp1
     .if RAMEND > 0xff
-		ldi rTemp1, hi8(RAMEND)
-		out SPH, rTemp1
-	.endif
+        ldi rTemp1, hi8(RAMEND)
+        out SPH, rTemp1
+    .endif
 
     ldi rTemp1, 0x21        ; RC Oscillator Calibration
     out OSCCAL, rTemp1
 
-    ldi rTemp1, 0x80        ; System Clock Prescaler
+    ldi rTemp1, 0x80        ; set System Clock Prescaler (CLKPCE = 1, to enable setting of prescaler) (1 << CLKPCE)
     out CLKPR, rTemp1
-    clr rTemp1
+    clr rTemp1				; to division factor 1
     out CLKPR, rTemp1
 
     in rTemp1, CtrlDDR      ; switch control port to output
@@ -170,11 +171,11 @@ main:
     mDispCtrl 0x30
     mDelay_us 100
     mDispCtrl 0x30
-	.if __DISPLAY_LINES__ == 1
-		mDispCtrl 0b00110000    ; 8 bit, one line, 5x7
-	.else
-		mDispCtrl 0b00111000    ; 8 bit, multiple lines, 5x7
-	.endif
+    .if __DISPLAY_LINES__ == 1
+        mDispCtrl 0b00110000    ; 8 bit, one line, 5x7
+    .else
+        mDispCtrl 0b00111000    ; 8 bit, multiple lines, 5x7
+    .endif
     mDispCtrl 0b00000001    ; clear display
     mDispCtrl 0b00001100    ; display on, cursor off, blink off
 
@@ -184,10 +185,16 @@ main:
 
 ; write from right to left
     mDispCtrl 0b00000100    ; decrement address, cursor shift left
-
 mainloop:
     mDispCtrl 0b10001111    ; set cursor to 1st line, last column
+    ldi rCtrl, _DATA
+    ldi rData, 2            ; filled heart
+    rcall writeLCD
     rcall readDHT
+    mDispCtrl 0b10001111    ; set cursor to 1st line, last column
+    ldi rCtrl, _DATA
+    ldi rData, 1           ; unfilled heart
+    rcall writeLCD
     mDelay_ms 1000
     rjmp mainloop
 
@@ -240,7 +247,6 @@ newCHR:
 .shift2loop:
     ldi rCtrl, _DATA    ; RS - data
     lpm rData, Z+       ; read data from flash
-	; ld r22, Z+      ; read data from RAM
     rcall writeLCD
     dec rLoop2
     brne .shift2loop    ; 8 bit done ?
@@ -274,7 +280,6 @@ readDHT:
     mDelay_us 80
 
     ldi rLoop1, 5           ; receive 5 databytes
-
 DataLoop:
     ldi rLoop2, 8           ; 8 bit per byte ;-)
 BitLoop:
@@ -296,32 +301,27 @@ WaitLow:
     brne BitLoop            ; no, next bit
 
     dec rLoop1
-    breq end                ; all bytes done
+    breq CalcChecksum       ; all bytes done
     st Z+, rSensorData      ; save byte in result
     add rChecksum, rSensorData  ; calculate checksum -> rChecksum
     rjmp DataLoop
 
-end:
+CalcChecksum:
     sub rChecksum, rSensorData  ; is checksum correct -> rChecksum == 0
 
     sbiw rPointerL, 3       ; Z points to first temperatur byte
     ld rTemp1, Z            ; MSB is sign bit
-    mov r2, rTemp1          ; r2 & 0x80 mask sing bit
-    andi rTemp2, 0x7f		; delete sign bit
-    st Z, rTemp2
+    bst rTemp1, 7           ; save temperature sign in "T" flag, T=1 -> negative temperature
+    andi rTemp1, 0x7f       ; mask sign bit
+    st Z, rTemp1
 
-output:
-    ldi rPointerL, lo8(bits)    ; RAM for sensor data
+;output:
+    ldi rPointerL, lo8(bits); sensor data is stored here
     ldi rPointerH, hi8(bits)
-
-    ldi rTemp1, 0x01        ; ok -> ♥
     tst rChecksum           ; error ?
-    breq ok
-    inc rTemp1              ; display error sign on LCD
-ok:
+    brne error
+;ok:
     ldi rCtrl, _DATA
-    mov rData, rTemp1
-    rcall writeLCD
     ldi rData, 'H'
     rcall writeLCD
     ldi rData, 'R'
@@ -332,17 +332,17 @@ ok:
     ld rDivL, Z+
     rcall divBy10       ; decimal place
     ldi rData, 0x30
-    add rData, rRemainder
+    add rData, rModulo
     rcall writeLCD
     ldi rData, '.'
     rcall writeLCD
     rcall divBy10       ; unit place
     ldi rData, 0x30
-    add rData, rRemainder
+    add rData, rModulo
     rcall writeLCD
     rcall divBy10       ; tens digit
     ldi rData, 0x30
-    add rData, rRemainder
+    add rData, rModulo
     rcall writeLCD
     ldi rData, ' '
     rcall writeLCD
@@ -354,38 +354,41 @@ ok:
     ld rDivL, Z+
     rcall divBy10       ; decimal place
     ldi rData, 0x30
-    add rData, rRemainder
+    add rData, rModulo
     rcall writeLCD
     ldi rData, '.'
     rcall writeLCD
     rcall divBy10       ; unit place
     ldi rData, 0x30
-    add rData, rRemainder
+    add rData, rModulo
     rcall writeLCD
     rcall divBy10       ; tens digit
-    tst rRemainder      ; suppress leading zero
-    breq nozero
+    tst rModulo         ; suppress leading zero
+    breq noprint
     ldi rData, 0x30
-    add rData, rRemainder
+    add rData, rModulo
     rcall writeLCD
-nozero:
+noprint:
     ldi rData, '+'
-    mov rTemp2, rSensorData
-    andi rTemp2, 0x80   ; mask sign bit
-    breq postemp
+    brtc notnegative
     ldi rData, '-'
-postemp:
+notnegative:
     rcall writeLCD
-
-    ; sub r3, r2
-    ; mov rCounterL, r3         ; return checksum
-
-return_del:
-
     ret
+
 error:
-    inc rChecksum       ; error
-    rjmp output
+    mDispCtrl 0b10001111
+    ldi rPointerL, lo8(SensorError)
+    ldi rPointerH, hi8(SensorError)
+    ldi rCtrl, _DATA
+next:
+    lpm rData, Z+
+    tst rData
+    breq end
+    rcall writeLCD
+    rjmp next
+end:
+    ret
 
 .endfunc                ; readDHT
 
@@ -399,20 +402,20 @@ error:
 uswait:
     sbiw rCounterL, 1   ; 2
 .if (__F_CPU <= 12000000)   ; 6-12 MHz
-    brne loop       ; 1|2
+    brne l0         ; 1|2
     ret             ; 4
 .else
     breq return     ; 1|2
-    rcall loop      ; 3
+    rcall l0        ; 3
 .endif
 .if (__F_CPU == 20000000)   ; 20 MHz
-loop:
+l0:
     nop             ; 1
     nop             ; 1
     nop             ; 1
     nop             ; 1
 .else
-loop:
+l0:
 .endif
 .if (__F_CPU >= 12000000)   ; 12-20 MHz
     .rept 6
@@ -435,52 +438,51 @@ return:
 ;    rcall mswait    3
 
 mswait:
-    push rLoop1        ; 2
+    push rLoop1     ; 2
     push r27        ; 2
     rjmp l1         ; 2
 l3:
-    sbiw rCounterL,1      ; 2
+    sbiw rCounterL,1; 2
     brne l1         ; 1|2
     pop r27         ; 2
-    pop rLoop1         ; 2
+    pop rLoop1      ; 2
     ret             ; 4
 
 l1:
     nop             ; 1
-    ldi rLoop1, lo8(dLoop) ; 1
-    ldi r27, hi8(dLoop) ; 1
+    ldi rLoop1, lo8(dLoop)  ; 1
+    ldi rLoop2, hi8(dLoop)  ; 1
 
 l2:
-    sbiw rLoop1,1      ; 2
+    sbiw rLoop1,1   ; 2
     brne l2         ; 1|2
 
     rjmp l3         ; 2
 .endfunc            ; mswait
 
-
 .func divBy10
 divBy10:
-div:    ldi     rLoop3, 16  ; 16 bit
-        clr     rRemainder  ; initialize rRemainder
-dv1:    lsl     rDivL       ; shift dividend ...
-        rol     rDivH       ; ... to carry
-        rol     rRemainder  ; carry -> remainder
-        ;brcs    dv3         ; overflow remainder
-        cpi     rRemainder, 10  ; shift until remainder >= 10
-        brcs    dv2         ; if remainder < 10, set to "0"
-dv3:    inc     rDivL       ; else set to "1" and reduce remainder by 10
-        subi    rRemainder ,10
-dv2:    dec     rLoop3      ; 16 bit done ?
-        brne    dv1
-        ret
+    ldi     rLoop3, 16  ; 16 bit
+    clr     rModulo     ; initialize rModulo
+dv1:
+    lsl     rDivL       ; shift dividend ...
+    rol     rDivH       ; ... to carry
+    rol     rModulo     ; carry -> remainder
+    ;brcs    dv3        ; overflow remainder
+    cpi     rModulo, 10 ; shift until remainder >= 10
+    brcs    dv2         ; if remainder < 10, set to "0"
+dv3:
+    inc     rDivL       ; else set to "1" and reduce remainder by 10
+    subi    rModulo ,10
+dv2:
+    dec     rLoop3      ; 16 bit done ?
+    brne    dv1
+    ret
 .endfunc
 
 LineAddress:    .byte 0x00, 0x40, 0x10, 0x50    ; line # 1, 2, 3, 4 (16x?)
 heartU:         .byte 0x00, 0x0a, 0x15, 0x11, 0x11, 0x0a, 0x04, 0x00    ; unfilled heart
 heartF:         .byte 0x00, 0x0a, 0x1f, 0x1f, 0x1f, 0x0e, 0x04, 0x00    ; filled hear
-
-; CRCErr:		.asciz "CRC error"
-; SensorErr:	.asciz "Sensor error"
-; Test:           .asciz "Test1234!"
+SensorError:    .asciz "  ! rorre rosneS"
 
 .end

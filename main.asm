@@ -21,6 +21,7 @@
 ; v0.1.3 2020-01-27
 ; v1.0.0 2020-01-28
 ; v1.0.1 2020-01-01: added blinking hearbeat and error message; sorce code optimization
+; v1.0.2 2020-02-07: using sleep mode and watchdog for reactivation
 
 .include "../inc/tn13def.inc"
 
@@ -33,7 +34,7 @@
 
 ;--------------------------------------------------------------------------------
 ; LCD with 3-Wire interface
-.set __DISPLAY_LINES__, 2    ; number of display lines
+.equ __DISPLAY_LINES__, 2    ; number of display lines
 
 ; define control bits
 .equ _RS, 1     ; register select: data=1, control=0
@@ -41,8 +42,6 @@
 .equ _EN, 2     ; enable: falling edge
 .equ _SD, _RS   ; serial data (shared with lcd register select)
 .equ _SC, 4     ; serial clock, RW bit can be used.warning "3-wire version: no display reading possible"
-
-.equ CtrlOut, (1<<_RS | 1<<_EN | 1<<_SC)   ; bit pattern for DDR control port
 
 ; port definition
 .equ DataDDR, DDRB
@@ -58,32 +57,34 @@
 
 ;--------------------------------------------------------------------------------
 ; mcu registers
-.set rDivL, 0
-.set rDivH, 1
-.set rSensorData, 2
-.set rChecksum, 3
-.set rTemp1, 16
-.set rTemp2, 17
-.set rModulo , 18
-.set rHearbeat, 19
-.set rData, 22
-.set rCtrl, 23
-.set rCounterL, 24
-.set rCounterH, 25
-.set rLoop1, 26
-.set rLoop2, 27
-.set rAddr, 28
-.set rLoop3, 29
-.set rPointerL, 30      ; ZL
-.set rPointerH, 31      ; ZH
+.equ rDivL, 0
+.equ rDivH, 1
+.equ rSensorData, 2
+.equ rChecksum, 3
+; .equ rWD_TestL, 4
+; .equ rWD_TestH, 5
+.equ rTemp1, 16
+.equ rTemp2, 17
+.equ rModulo , 18
+.equ rHearbeat, 19
+.equ rData, 22
+.equ rCtrl, 23
+.equ rCounterL, 24
+.equ rCounterH, 25
+.equ rLoop1, 26
+.equ rLoop2, 27
+.equ rAddr, 28
+.equ rLoop3, 29
+.equ rPointerL, 30      ; ZL
+.equ rPointerH, 31      ; ZH
 
 ;--------------------------------------------------------------------------------
 ; delay
 .ifndef __F_CPU
-    .set __F_CPU, 6000000   ; 6MHz
+    .equ __F_CPU, 6000000   ; 6MHz
 .endif
 
-; you can determine the corection factor with DelayCalc.ods
+; you can determine the correction factor with DelayCalc.ods
 .equ cFactor, 2                             ; correction factor
 .equ dLoop, (__F_CPU / 4 / 1000) - cFactor  ; ms loop counter
 
@@ -91,7 +92,7 @@
     .warning "6MHz"
     .macro mDelay_us us
         .if (\us - 1)
-            .set cycles, (\us - 1)
+            .equ cycles, (\us - 1)
             ldi rCounterL, lo8(cycles)
             ldi rCounterH, hi8(cycles)
             rcall uswait
@@ -134,10 +135,24 @@
 
 .data
 
-bits:   .space 4	; byte data from sensor -> humidityH:humidityL:temperatureH:temperatur:L
+bits:   .space 4    ; byte data from sensor -> humidityH:humidityL:temperatureH:temperaturL
 
 .text
+; 0x0000 RESET          External Pin, Power-on Reset,Brown-out Reset, Watchdog Reset
+; 0x0001 INT0           External Interrupt Request 0
+; 0x0002 PCINT0         Pin Change Interrupt Request 0
+; 0x0003 TIM0_OVF       Timer/Counter Overflow
+; 0x0004 EE_RDY         EEPROM Ready
+; 0x0005 ANA_COMP       Analog Comparator
+; 0x0006 TIM0_COMPA     Timer/Counter Compare Match A
+; 0x0007 TIM0_COMPB     Timer/Counter Compare Match B
+; 0x0008 WDTWatchdog    Time-out
+; 0x0009 ADC            ADC Conversion Complete
+
 .org 0x0000
+    rjmp main
+.org WDTaddr*2          ; word address
+    reti                ; do nothing expect wakeup the mcu
 
 main:
     cli                     ; no interrupts
@@ -157,11 +172,21 @@ main:
 
     ldi rTemp1, 0x80        ; set System Clock Prescaler (CLKPCE = 1, to enable setting of prescaler) (1 << CLKPCE)
     out CLKPR, rTemp1
-    clr rTemp1				; to division factor 1
+    clr rTemp1                ; to division factor 1
     out CLKPR, rTemp1
 
+    ldi rTemp1, 1<<WDTIE | 1<<WDP3 | 0<<WDP1 | 0<<WDP0    ; ~2 sec
+    out WDTCR, rTemp1
+
+; debug
+    ; clr rWD_TestL
+    ; clr rWD_TestH
+
+    ldi rTemp1, 1<<SE + 1<<SM1  ; sleep mode: power-down
+    out MCUCR, rTemp1
+
     in rTemp1, CtrlDDR      ; switch control port to output
-    ori rTemp1, CtrlOut
+    ori rTemp1, 1<<_RS | 1<<_EN | 1<<_SC
     out CtrlDDR, rTemp1
 
 ; initialize LCD
@@ -185,6 +210,10 @@ main:
 
 ; write from right to left
     mDispCtrl 0b00000100    ; decrement address, cursor shift left
+    sei                     ; allow interrupts
+    rcall startMsg
+    sleep
+
 mainloop:
     mDispCtrl 0b10001111    ; set cursor to 1st line, last column
     ldi rCtrl, _DATA
@@ -193,11 +222,36 @@ mainloop:
     rcall readDHT
     mDispCtrl 0b10001111    ; set cursor to 1st line, last column
     ldi rCtrl, _DATA
-    ldi rData, 1           ; unfilled heart
+    ldi rData, 1            ; unfilled heart
     rcall writeLCD
-    mDelay_ms 1000
+    sleep
     rjmp mainloop
 
+;--------------------------------------------------------------------------------
+; watchdog test
+; wdint:
+;     mDispCtrl 0b11001111    ; set cursor to 2nd line, last column
+;     ldi rCtrl, _DATA
+;     movw rDivL, rWD_TestL
+; convloop:
+;     rcall divBy10
+;     ldi rData, 0x30
+;     add rData, rModulo
+;     rcall writeLCD
+;     tst rDivL                ; done ?
+;     brne convloop
+;     ldi rTemp1, 1
+;     add rWD_TestL, rTemp1
+;     clr rTemp1
+;     adc rWD_TestH, rTemp1
+;
+; if WDE set you must set WDTIE to prevent the watchdog to reset the system
+; WDTCR |= (1<<WDIE); set interrupt enable to prevent systen reset
+;     ; in rTemp1, WDTCR
+;     ; ori rTemp1, (1<<WDTIE)
+;     ; out WDTCR, rTemp1
+;
+;     reti
 ;--------------------------------------------------------------------------------
 
 .func writeLCD          ; rs -> rCtrl, data -> rData
@@ -231,7 +285,7 @@ select2CtrlW:
     ret
 .endfunc                ; writeLCD
 
-.func newCHR            ; addr -> rAddr, ^dataarray -> rPointerH:rPointerL)
+.func newCHR            ; addr -> rAddr, ^dataarray -> rPointerH:rPointerL
 
 newCHR:
     lsl rAddr           ; rAddr * 8
@@ -244,8 +298,8 @@ newCHR:
     mov rData, rAddr    ; CGRAM address
     rcall writeLCD
 
-.shift2loop:
     ldi rCtrl, _DATA    ; RS - data
+.shift2loop:
     lpm rData, Z+       ; read data from flash
     rcall writeLCD
     dec rLoop2
@@ -269,14 +323,14 @@ readDHT:
     mDelay_us 500           ; for 500us
     sbi _DHTPORT, _DHTBIT
 
-    CBI _DHTDDR, _DHTBIT    ; pin -> input
+    cbi _DHTDDR, _DHTBIT    ; pin -> input
     mDelay_us 40
 
     sbic _DHTPIN, _DHTBIT
-    rjmp error
+    rjmp errorMsg
     mDelay_us 80
     sbis _DHTPIN, _DHTBIT
-    rjmp error
+    rjmp errorMsg
     mDelay_us 80
 
     ldi rLoop1, 5           ; receive 5 databytes
@@ -308,6 +362,7 @@ WaitLow:
 
 CalcChecksum:
     sub rChecksum, rSensorData  ; is checksum correct -> rChecksum == 0
+    brne errorMsg
 
     sbiw rPointerL, 3       ; Z points to first temperatur byte
     ld rTemp1, Z            ; MSB is sign bit
@@ -315,12 +370,9 @@ CalcChecksum:
     andi rTemp1, 0x7f       ; mask sign bit
     st Z, rTemp1
 
-;output:
     ldi rPointerL, lo8(bits); sensor data is stored here
     ldi rPointerH, hi8(bits)
-    tst rChecksum           ; error ?
-    brne error
-;ok:
+
     ldi rCtrl, _DATA
     ldi rData, 'H'
     rcall writeLCD
@@ -376,10 +428,18 @@ notnegative:
     rcall writeLCD
     ret
 
-error:
-    mDispCtrl 0b10001111
+.endfunc                ; readDHT
+
+startMsg:
+    ldi rPointerL, lo8(Welcome)
+    ldi rPointerH, hi8(Welcome)
+    rjmp print
+
+errorMsg:
     ldi rPointerL, lo8(SensorError)
     ldi rPointerH, hi8(SensorError)
+print:
+    mDispCtrl 0b10001111
     ldi rCtrl, _DATA
 next:
     lpm rData, Z+
@@ -390,10 +450,7 @@ next:
 end:
     ret
 
-.endfunc                ; readDHT
-
-.global uswait
-.func uswait        ; void uswait(int µs -> rCounterL:rCounterH)
+.func uswait        ; µs -> rCounterL:rCounterH
 
 ;   ldi rCounterL, 1        1
 ;   ldi rCounterH, 0        1
@@ -430,8 +487,7 @@ return:
 .endif
 .endfunc            ; uswait
 
-.global mswait
-.func mswait            ; void mswait(const int ms -> rCounterL:rCounterH)
+.func mswait            ; ms -> rCounterL:rCounterH
 
 ;    ldi r22,0       1
 ;    ldi r21,1       1
@@ -461,6 +517,7 @@ l2:
 .endfunc            ; mswait
 
 .func divBy10
+
 divBy10:
     ldi     rLoop3, 16  ; 16 bit
     clr     rModulo     ; initialize rModulo
@@ -480,9 +537,9 @@ dv2:
     ret
 .endfunc
 
-LineAddress:    .byte 0x00, 0x40, 0x10, 0x50    ; line # 1, 2, 3, 4 (16x?)
-heartU:         .byte 0x00, 0x0a, 0x15, 0x11, 0x11, 0x0a, 0x04, 0x00    ; unfilled heart
-heartF:         .byte 0x00, 0x0a, 0x1f, 0x1f, 0x1f, 0x0e, 0x04, 0x00    ; filled hear
-SensorError:    .asciz "  ! rorre rosneS"
+heartU:      .byte 0x00, 0x0a, 0x15, 0x11, 0x0a, 0x04, 0x00, 0x00    ; unfilled heart
+heartF:      .byte 0x00, 0x0a, 0x1f, 0x1f, 0x0e, 0x04, 0x00, 0x00    ; filled hear
+Welcome:     .asciz "): dnoces a tsuJ"
+SensorError: .asciz "  ! rorre rosneS"
 
 .end

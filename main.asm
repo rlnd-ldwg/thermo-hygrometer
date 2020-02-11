@@ -20,8 +20,10 @@
 ; v0.1.2 2020-01-26
 ; v0.1.3 2020-01-27
 ; v1.0.0 2020-01-28
-; v1.0.1 2020-01-01: added blinking hearbeat and error message; sorce code optimization
-; v1.0.2 2020-02-07: using sleep mode and watchdog for reactivation
+; v1.0.1 2020-02-01: added blinking heartbeat and error message; source code optimization
+; v1.0.2 2020-02-07: using sleep mode and watchdog for reactivation, new symbol for hearbeat
+; v1.0.3 2020-02-11: wrong indication of negative temperature corrected, pinout change for better use of IPS header for enhancements
+;                    adaptations for the 16x1 display which uses addresses from a 2-line display
 
 .include "../inc/tn13def.inc"
 
@@ -37,11 +39,13 @@
 .equ __DISPLAY_LINES__, 2    ; number of display lines
 
 ; define control bits
-.equ _RS, 1     ; register select: data=1, control=0
+.equ _RS, 2     ; register select: data=1, control=0
 .equ _RW, 0     ; the RW pin is set to ground
-.equ _EN, 2     ; enable: falling edge
+.equ _EN, 3     ; enable: falling edge
 .equ _SD, _RS   ; serial data (shared with lcd register select)
-.equ _SC, 4     ; serial clock, RW bit can be used.warning "3-wire version: no display reading possible"
+.equ _SC, 4     ; serial clock, RW bit can be used
+
+.warning "3-wire version: no display reading possible"
 
 ; port definition
 .equ DataDDR, DDRB
@@ -152,7 +156,7 @@ bits:   .space 4    ; byte data from sensor -> humidityH:humidityL:temperatureH:
 .org 0x0000
     rjmp main
 .org WDTaddr*2          ; word address
-    reti                ; do nothing expect wakeup the mcu
+    reti                ; just wakeup the mcu
 
 main:
     cli                     ; no interrupts
@@ -211,16 +215,17 @@ main:
 ; write from right to left
     mDispCtrl 0b00000100    ; decrement address, cursor shift left
     sei                     ; allow interrupts
+    mDelay_ms 1000
     rcall startMsg
     sleep
 
 mainloop:
-    mDispCtrl 0b10001111    ; set cursor to 1st line, last column
+    mDispCtrl 0b11000111    ; set cursor to 2st line, last column
     ldi rCtrl, _DATA
     ldi rData, 2            ; filled heart
     rcall writeLCD
     rcall readDHT
-    mDispCtrl 0b10001111    ; set cursor to 1st line, last column
+    mDispCtrl 0b11000111    ; set cursor to 2st line, last column
     ldi rCtrl, _DATA
     ldi rData, 1            ; unfilled heart
     rcall writeLCD
@@ -307,6 +312,32 @@ newCHR:
     ret
 .endfunc                ; newCHR
 
+
+startMsg:
+    ldi rPointerL, lo8(Welcome)
+    ldi rPointerH, hi8(Welcome)
+    rjmp print
+
+errorMsg:
+    ldi rPointerL, lo8(SensorError)
+    ldi rPointerH, hi8(SensorError)
+print:
+    set         ; T=1 2nd line
+    mDispCtrl 0b11000111
+    ldi rCtrl, _DATA
+next:
+    lpm rData, Z+
+    tst rData
+    breq line1
+    rcall writeLCD
+    rjmp next
+line1:
+    brtc end
+    clt         ; T=0 1st line
+    mDispCtrl 0b10000111
+    rjmp next-2
+end:
+    ret
 ;--------------------------------------------------------------------------------
 .func readDHT
 
@@ -362,16 +393,19 @@ WaitLow:
 
 CalcChecksum:
     sub rChecksum, rSensorData  ; is checksum correct -> rChecksum == 0
-    brne errorMsg
-
-    sbiw rPointerL, 3       ; Z points to first temperatur byte
+;    brne errorMsg
+    breq jump
+    rjmp errorMsg
+jump:
+    sbiw rPointerL, 2       ; Z points to first temperatur byte
     ld rTemp1, Z            ; MSB is sign bit
     bst rTemp1, 7           ; save temperature sign in "T" flag, T=1 -> negative temperature
     andi rTemp1, 0x7f       ; mask sign bit
     st Z, rTemp1
 
-    ldi rPointerL, lo8(bits); sensor data is stored here
-    ldi rPointerH, hi8(bits)
+    ; ldi rPointerL, lo8(bits); sensor data is stored here
+    ; ldi rPointerH, hi8(bits)
+    sbiw rPointerL, 2       ; Z points to first humidity byte
 
     ldi rCtrl, _DATA
     ldi rData, 'H'
@@ -396,6 +430,9 @@ CalcChecksum:
     ldi rData, 0x30
     add rData, rModulo
     rcall writeLCD
+; 1st line
+    mDispCtrl 0b10000111
+    ldi rCtrl, _DATA
     ldi rData, ' '
     rcall writeLCD
     ldi rData, 'C'
@@ -429,26 +466,6 @@ notnegative:
     ret
 
 .endfunc                ; readDHT
-
-startMsg:
-    ldi rPointerL, lo8(Welcome)
-    ldi rPointerH, hi8(Welcome)
-    rjmp print
-
-errorMsg:
-    ldi rPointerL, lo8(SensorError)
-    ldi rPointerH, hi8(SensorError)
-print:
-    mDispCtrl 0b10001111
-    ldi rCtrl, _DATA
-next:
-    lpm rData, Z+
-    tst rData
-    breq end
-    rcall writeLCD
-    rjmp next
-end:
-    ret
 
 .func uswait        ; µs -> rCounterL:rCounterH
 
@@ -539,7 +556,7 @@ dv2:
 
 heartU:      .byte 0x00, 0x0a, 0x15, 0x11, 0x0a, 0x04, 0x00, 0x00    ; unfilled heart
 heartF:      .byte 0x00, 0x0a, 0x1f, 0x1f, 0x0e, 0x04, 0x00, 0x00    ; filled hear
-Welcome:     .asciz "): dnoces a tsuJ"
-SensorError: .asciz "  ! rorre rosneS"
+Welcome:     .asciz "): dnoce\0s a tsuJ"
+SensorError: .asciz "  ! rorr\0e rosneS"
 
 .end

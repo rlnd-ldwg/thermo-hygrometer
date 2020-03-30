@@ -38,14 +38,12 @@
 ; LCD with 3-Wire interface
 .equ __DISPLAY_LINES__, 2    ; number of display lines
 
-; define control bits
+; control bits
 .equ _RS, 2     ; register select: data=1, control=0
 .equ _RW, 0     ; the RW pin is set to ground
 .equ _EN, 3     ; enable: falling edge
 .equ _SD, _RS   ; serial data (shared with lcd register select)
 .equ _SC, 4     ; serial clock, RW bit can be used
-
-.warning "3-wire version: no display reading possible"
 
 ; port definition
 .equ DataDDR, DDRB
@@ -115,11 +113,11 @@
     .endm
 .endif
 
-.macro mDelay_ms ms
-    ldi rCounterL, lo8(\ms)
-    ldi rCounterH, hi8(\ms)
-    rcall mswait
-.endm
+; .macro mDelay_ms ms
+;     ldi rCounterL, lo8(\ms)
+;     ldi rCounterH, hi8(\ms)
+;     rcall mswait
+; .endm
 
 .macro mDispCtrl cmd ; rData -> data, rCtrl -> register select
     ldi rData, \cmd
@@ -215,21 +213,19 @@ main:
 ; write from right to left
     mDispCtrl 0b00000100    ; decrement address, cursor shift left
     sei                     ; allow interrupts
-    mDelay_ms 1000
     rcall startMsg
-    sleep
 
 mainloop:
+    sleep
     mDispCtrl 0b11000111    ; set cursor to 2st line, last column
     ldi rCtrl, _DATA
-    ldi rData, 2            ; filled heart
+    ldi rData, 1            ; filled heart
     rcall writeLCD
     rcall readDHT
     mDispCtrl 0b11000111    ; set cursor to 2st line, last column
     ldi rCtrl, _DATA
-    ldi rData, 1            ; unfilled heart
+    ldi rData, 2            ; unfilled heart
     rcall writeLCD
-    sleep
     rjmp mainloop
 
 ;--------------------------------------------------------------------------------
@@ -312,7 +308,6 @@ newCHR:
     ret
 .endfunc                ; newCHR
 
-
 startMsg:
     ldi rPointerL, lo8(Welcome)
     ldi rPointerH, hi8(Welcome)
@@ -322,15 +317,19 @@ errorMsg:
     ldi rPointerL, lo8(SensorError)
     ldi rPointerH, hi8(SensorError)
 print:
+; special 1-line display
     set         ; T=1 2nd line
     mDispCtrl 0b11000111
     ldi rCtrl, _DATA
 next:
     lpm rData, Z+
     tst rData
+; special 1-line display
+;   breq end
     breq line1
     rcall writeLCD
     rjmp next
+; special 1-line display
 line1:
     brtc end
     clt         ; T=0 1st line
@@ -348,7 +347,8 @@ readDHT:
 
     sbi _DHTDDR, _DHTBIT    ; pin -> output
     sbi _DHTPORT, _DHTBIT   ; port -> high
-    mDelay_ms 100
+;    mDelay_ms 100
+;    mDelay_us 0xffff        ; 65535 µs delay
 
     cbi _DHTPORT, _DHTBIT   ; send request port -> low
     mDelay_us 500           ; for 500us
@@ -504,34 +504,34 @@ return:
 .endif
 .endfunc            ; uswait
 
-.func mswait            ; ms -> rCounterL:rCounterH
-
-;    ldi r22,0       1
-;    ldi r21,1       1
-;    rcall mswait    3
-
-mswait:
-    push rLoop1     ; 2
-    push r27        ; 2
-    rjmp l1         ; 2
-l3:
-    sbiw rCounterL,1; 2
-    brne l1         ; 1|2
-    pop r27         ; 2
-    pop rLoop1      ; 2
-    ret             ; 4
-
-l1:
-    nop             ; 1
-    ldi rLoop1, lo8(dLoop)  ; 1
-    ldi rLoop2, hi8(dLoop)  ; 1
-
-l2:
-    sbiw rLoop1,1   ; 2
-    brne l2         ; 1|2
-
-    rjmp l3         ; 2
-.endfunc            ; mswait
+; .func mswait            ; ms -> rCounterL:rCounterH
+;
+; ;    ldi r22,0       1
+; ;    ldi r21,1       1
+; ;    rcall mswait    3
+;
+; mswait:
+;     push rLoop1     ; 2
+;     push r27        ; 2
+;     rjmp l1         ; 2
+; l3:
+;     sbiw rCounterL,1; 2
+;     brne l1         ; 1|2
+;     pop r27         ; 2
+;     pop rLoop1      ; 2
+;     ret             ; 4
+;
+; l1:
+;     nop             ; 1
+;     ldi rLoop1, lo8(dLoop)  ; 1
+;     ldi rLoop2, hi8(dLoop)  ; 1
+;
+; l2:
+;     sbiw rLoop1,1   ; 2
+;     brne l2         ; 1|2
+;
+;     rjmp l3         ; 2
+; .endfunc            ; mswait
 
 .func divBy10
 

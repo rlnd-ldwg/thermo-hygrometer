@@ -7,9 +7,9 @@ encoding utf-8
 Sheet 1 1
 Title "Thermo-Hygrometer"
 Date "2020-02-11"
-Rev "1.0.2"
+Rev "1.0.3"
 Comp ""
-Comment1 ""
+Comment1 "Changed pin assigment"
 Comment2 ""
 Comment3 ""
 Comment4 ""
@@ -27,18 +27,6 @@ F 3 "" H 4650 2100 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	4100 2200 4100 2100
-Connection ~ 4100 2100
-$Comp
-L Display_Character:LM16255K HD44780
-U 1 1 5DE1AB82
-P 5950 2400
-F 0 "HD44780" H 5900 2500 50  0000 L CNN
-F 1 "LTN211" H 5900 2400 50  0000 L CNN
-F 2 "Display:LM16255" H 5950 1600 50  0001 C CNN
-F 3 "http://pdf.datasheetcatalog.com/datasheet/Sharp/mXvtrzw.pdf" H 6050 2300 50  0001 C CNN
-	1    5950 2400
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	5200 2900 5550 2900
 Wire Wire Line
@@ -72,17 +60,7 @@ F 3 "" H 5950 3400 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	5950 3400 5950 3100
-Wire Wire Line
-	5950 3100 5450 3100
-Wire Wire Line
-	5450 3100 5450 2000
-Wire Wire Line
-	5450 2000 5550 2000
 Connection ~ 5950 3100
-Wire Wire Line
-	5400 1700 5400 2100
-Wire Wire Line
-	5400 2100 5550 2100
 $Comp
 L power:+5V #PWR0102
 U 1 1 5DE1FA10
@@ -97,28 +75,23 @@ $EndComp
 Wire Wire Line
 	4100 1600 5550 1600
 Wire Wire Line
-	5550 1600 5550 1900
+	5550 1600 5550 1700
 Wire Wire Line
 	4850 1750 4850 1350
 Wire Wire Line
 	4850 1350 5950 1350
-Wire Wire Line
-	5950 1350 5950 1700
 Connection ~ 5950 1350
-Wire Wire Line
-	5450 3100 4300 3100
 Wire Wire Line
 	4300 1500 4650 1500
 Wire Wire Line
 	4650 1500 4650 1750
-Connection ~ 5450 3100
 $Comp
 L Device:R_POT R1
 U 1 1 5DE242DA
 P 6800 2200
 F 0 "R1" H 6730 2154 50  0000 R CNN
 F 1 "10k" H 6730 2245 50  0000 R CNN
-F 2 "Potentiometer_THT:Potentiometer_Piher_PC-16_Single_Vertical" H 6800 2200 50  0001 C CNN
+F 2 "Potentiometer_THT:Potentiometer_Piher_PT-10-V10_Vertical_Hole" H 6800 2200 50  0001 C CNN
 F 3 "~" H 6800 2200 50  0001 C CNN
 	1    6800 2200
 	-1   0    0    1   
@@ -126,13 +99,13 @@ $EndComp
 Wire Wire Line
 	6800 1350 6800 2050
 Wire Wire Line
-	6800 2350 6800 3100
+	6800 2350 6800 2500
 Wire Wire Line
 	6800 3100 5950 3100
 Wire Wire Line
 	6350 2200 6650 2200
 Wire Wire Line
-	6800 1350 5950 1350
+	6800 1350 6650 1350
 Wire Wire Line
 	4100 1850 4000 1850
 Wire Wire Line
@@ -218,9 +191,6 @@ F 3 "" H 1700 1400 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	2100 800  1700 800 
-Connection ~ 1700 800 
-Wire Wire Line
 	3450 2650 3450 1950
 Wire Wire Line
 	4300 1500 4300 3100
@@ -236,24 +206,7 @@ F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/doc2535.pdf" H 2000 2550 50
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	2000 1100 2100 1100
-$Comp
-L Device:R 4k7
-U 1 1 5E09A547
-P 2100 950
-F 0 "4k7" H 2170 996 50  0000 L CNN
-F 1 "R2" H 2170 905 50  0000 L CNN
-F 2 "Resistor_THT:R_Axial_DIN0414_L11.9mm_D4.5mm_P15.24mm_Horizontal" V 2030 950 50  0001 C CNN
-F 3 "~" H 2100 950 50  0001 C CNN
-	1    2100 950 
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	4100 1600 4100 1950
-Wire Wire Line
 	3300 1700 3300 2550
-Wire Wire Line
-	4100 1950 4100 2100
 Wire Wire Line
 	5400 1700 3300 1700
 Wire Wire Line
@@ -268,13 +221,11 @@ U 1 1 5E08DF28
 P 1750 4050
 F 0 "JP1" H 1471 4146 50  0000 R CNN
 F 1 "AVR-ISP-6" H 1471 4055 50  0000 R CNN
-F 2 "Connector_PinHeader_1.27mm:PinHeader_2x03_P1.27mm_Vertical" V 1500 4100 50  0001 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Horizontal" V 1500 4100 50  0001 C CNN
 F 3 " ~" H 475 3500 50  0001 C CNN
 	1    1750 4050
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	2150 3850 2700 3850
 Wire Wire Line
 	2700 3850 2700 2350
 Wire Wire Line
@@ -286,14 +237,9 @@ Wire Wire Line
 Wire Wire Line
 	2800 2250 2800 1100
 Wire Wire Line
-	2800 1100 2100 1100
-Connection ~ 2100 1100
-Wire Wire Line
 	2150 4050 2900 4050
 Wire Wire Line
 	2900 4050 2900 2450
-Wire Wire Line
-	3450 1950 4200 1950
 Wire Wire Line
 	4100 2450 4100 2200
 Connection ~ 4100 2200
@@ -309,4 +255,97 @@ Wire Wire Line
 	2900 2450 4100 2450
 Wire Wire Line
 	3000 2750 2600 2750
+Wire Wire Line
+	2000 1100 2800 1100
+$Comp
+L Connector:Screw_Terminal_01x02 J1
+U 1 1 5E5CB843
+P 2200 4650
+F 0 "J1" H 2118 4867 50  0000 C CNN
+F 1 "Screw_Terminal_01x02" H 2118 4776 50  0000 C CNN
+F 2 "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal" H 2200 4650 50  0001 C CNN
+F 3 "~" H 2200 4650 50  0001 C CNN
+	1    2200 4650
+	-1   0    0    -1  
+$EndComp
+$Comp
+L power:+5V #PWR0109
+U 1 1 5E5D7BED
+P 2400 4650
+F 0 "#PWR0109" H 2400 4500 50  0001 C CNN
+F 1 "+5V" H 2415 4823 50  0000 C CNN
+F 2 "" H 2400 4650 50  0001 C CNN
+F 3 "" H 2400 4650 50  0001 C CNN
+	1    2400 4650
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0110
+U 1 1 5E5D8415
+P 2400 4750
+F 0 "#PWR0110" H 2400 4500 50  0001 C CNN
+F 1 "GND" H 2405 4577 50  0000 C CNN
+F 2 "" H 2400 4750 50  0001 C CNN
+F 3 "" H 2400 4750 50  0001 C CNN
+	1    2400 4750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Display_Character:NHD-0420H1Z U1
+U 1 1 5E5DD57F
+P 5950 2300
+F 0 "U1" H 5950 1411 50  0000 C CNN
+F 1 "NHD-0420H1Z" H 5950 1320 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x16_P2.54mm_Vertical" H 5950 1400 50  0001 C CNN
+F 3 "http://www.newhavendisplay.com/specs/NHD-0420H1Z-FSW-GBW-33V3.pdf" H 6050 2200 50  0001 C CNN
+	1    5950 2300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5950 1500 5950 1350
+Wire Wire Line
+	6350 2200 6350 1500
+Wire Wire Line
+	6350 1500 6050 1500
+Wire Wire Line
+	4300 3100 5500 3100
+Wire Wire Line
+	5550 1900 5400 1900
+Wire Wire Line
+	5400 1900 5400 1700
+Wire Wire Line
+	5550 1800 5500 1800
+Wire Wire Line
+	5500 1800 5500 3100
+Connection ~ 5500 3100
+Wire Wire Line
+	5500 3100 5950 3100
+Wire Wire Line
+	6350 2500 6800 2500
+Connection ~ 6800 2500
+Wire Wire Line
+	6800 2500 6800 3100
+Connection ~ 6650 1350
+Wire Wire Line
+	6650 1350 5950 1350
+Wire Wire Line
+	6650 1350 6650 2600
+Wire Wire Line
+	3450 1950 4100 1950
+Connection ~ 4100 2100
+Wire Wire Line
+	4100 1600 4100 2100
+$Comp
+L Device:R R2
+U 1 1 5E5FF9C7
+P 6500 2600
+F 0 "R2" V 6293 2600 50  0000 C CNN
+F 1 "R" V 6384 2600 50  0000 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal" V 6430 2600 50  0001 C CNN
+F 3 "~" H 6500 2600 50  0001 C CNN
+	1    6500 2600
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	2700 3850 2150 3850
 $EndSCHEMATC

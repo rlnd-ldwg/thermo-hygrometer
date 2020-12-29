@@ -22,8 +22,14 @@ ifeq ($(OS),Windows_NT)
 	AVRTOOLCHAIN = c:/.../avr
 	AVRDUDEPATH = c:/.../avr
 else
-	AVRTOOLCHAIN = /Users/roland/.platformio/packages/toolchain-atmelavr/bin
-	AVRDUDEPATH = /Users/roland/.platformio/packages/tool-avrdude/
+	UNAME := $(shell uname -s)
+	ifeq ($(UNAME), Linux)
+		AVRTOOLCHAIN = /home/roland/.platformio/packages/toolchain-atmelavr/bin
+		AVRDUDEPATH = /home/roland/.platformio/packages/tool-avrdude/
+	else
+		AVRTOOLCHAIN = /Users/roland/.platformio/packages/toolchain-atmelavr/bin
+		AVRDUDEPATH = /Users/roland/.platformio/packages/tool-avrdude/
+	endif
 endif
 
 AVRDUDECFG = $(AVRDUDEPATH)/avrdude.conf

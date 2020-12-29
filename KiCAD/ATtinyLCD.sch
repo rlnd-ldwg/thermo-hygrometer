@@ -1,5 +1,4 @@
 EESchema Schematic File Version 4
-LIBS:DHT22-cache
 EELAYER 30 0
 EELAYER END
 $Descr User 8268 5827
@@ -227,10 +226,6 @@ F 3 " ~" H 475 3500 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	2700 3850 2700 2350
-Wire Wire Line
-	2600 2350 2700 2350
-Wire Wire Line
 	2150 3950 2800 3950
 Wire Wire Line
 	2800 3950 2800 2250
@@ -347,5 +342,9 @@ F 3 "~" H 6500 2600 50  0001 C CNN
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	2700 3850 2150 3850
+	2600 2350 2700 2350
+Wire Wire Line
+	2700 3850 2700 2350
+Wire Wire Line
+	2150 3850 2700 3850
 $EndSCHEMATC

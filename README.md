@@ -7,6 +7,7 @@ Thermo-Hygrometer based on DHT22, ATtiny13 and HD44780 compatible display
 v 1.0.3 wrong indication of negative temperature corrected,
 pinout change for better use of IPS header for enhancements,
 adaptations for the 16x1 display which uses addresses from a 2-line display
+v 1.0.5 corrected error in pcb
 
 To assemble the code, adjust the Makefile to your needs. You have then the following options:
 

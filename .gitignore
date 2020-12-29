@@ -6,3 +6,14 @@ ATtiny13*
 *.lst
 ToDo.md
 Makefile
+RegisterThermohygrometer.ods
+# KiCAD
+KiCAD/*.dcm
+KiCAD/*.ses
+KiCAD/*.dsn
+KiCAD/*-bak
+KiCAD/*.scr
+KiCAD/*.rules
+KiCAD/fp-info-cache
+KiCAD/sym-lib-table
+KiCAD/*.lib

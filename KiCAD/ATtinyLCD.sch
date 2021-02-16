@@ -14,7 +14,7 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L 74xx_IEEE:74164 IC1
+L ATtinyLCD-rescue:74164-74xx_IEEE IC1
 U 1 1 5DE15F63
 P 4650 2100
 F 0 "IC1" H 4600 2400 50  0000 C CNN
@@ -47,7 +47,7 @@ Wire Wire Line
 Wire Wire Line
 	5350 2150 5200 2150
 $Comp
-L power:GND #PWR0101
+L ATtinyLCD-rescue:GND-power #PWR0101
 U 1 1 5DE1E26B
 P 5950 3400
 F 0 "#PWR0101" H 5950 3150 50  0001 C CNN
@@ -61,7 +61,7 @@ Wire Wire Line
 	5950 3400 5950 3100
 Connection ~ 5950 3100
 $Comp
-L power:+5V #PWR0102
+L ATtinyLCD-rescue:+5V-power #PWR0102
 U 1 1 5DE1FA10
 P 5950 1350
 F 0 "#PWR0102" H 5950 1200 50  0001 C CNN
@@ -85,7 +85,7 @@ Wire Wire Line
 Wire Wire Line
 	4650 1500 4650 1750
 $Comp
-L Device:R_POT R1
+L ATtinyLCD-rescue:R_POT-Device R1
 U 1 1 5DE242DA
 P 6800 2200
 F 0 "R1" H 6730 2154 50  0000 R CNN
@@ -113,7 +113,7 @@ Wire Wire Line
 	4000 1350 4850 1350
 Connection ~ 4850 1350
 $Comp
-L Sensor:DHT11 IC3
+L ATtinyLCD-rescue:DHT11-Sensor IC3
 U 1 1 5E08CAFD
 P 1700 1100
 F 0 "IC3" H 1456 1146 50  0000 R CNN
@@ -124,7 +124,7 @@ F 3 "http://akizukidenshi.com/download/ds/aosong/DHT11.pdf" H 1850 1350 50  0001
 	1    0    0    -1  
 $EndComp
 $Comp
-L power:+5V #PWR0103
+L ATtinyLCD-rescue:+5V-power #PWR0103
 U 1 1 5E096469
 P 1650 3550
 F 0 "#PWR0103" H 1650 3400 50  0001 C CNN
@@ -135,7 +135,7 @@ F 3 "" H 1650 3550 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L power:+5V #PWR0104
+L ATtinyLCD-rescue:+5V-power #PWR0104
 U 1 1 5E09735F
 P 2000 1950
 F 0 "#PWR0104" H 2000 1800 50  0001 C CNN
@@ -146,7 +146,7 @@ F 3 "" H 2000 1950 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L power:+5V #PWR0105
+L ATtinyLCD-rescue:+5V-power #PWR0105
 U 1 1 5E097AF8
 P 1700 800
 F 0 "#PWR0105" H 1700 650 50  0001 C CNN
@@ -157,7 +157,7 @@ F 3 "" H 1700 800 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L power:GND #PWR0106
+L ATtinyLCD-rescue:GND-power #PWR0106
 U 1 1 5E099422
 P 1650 4450
 F 0 "#PWR0106" H 1650 4200 50  0001 C CNN
@@ -168,7 +168,7 @@ F 3 "" H 1650 4450 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L power:GND #PWR0107
+L ATtinyLCD-rescue:GND-power #PWR0107
 U 1 1 5E099DB3
 P 2000 3150
 F 0 "#PWR0107" H 2000 2900 50  0001 C CNN
@@ -179,7 +179,7 @@ F 3 "" H 2000 3150 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L power:GND #PWR0108
+L ATtinyLCD-rescue:GND-power #PWR0108
 U 1 1 5E099F98
 P 1700 1400
 F 0 "#PWR0108" H 1700 1150 50  0001 C CNN
@@ -194,7 +194,7 @@ Wire Wire Line
 Wire Wire Line
 	4300 1500 4300 3100
 $Comp
-L MCU_Microchip_ATtiny:ATtiny13-20PU IC2
+L ATtinyLCD-rescue:ATtiny13-20PU-MCU_Microchip_ATtiny IC2
 U 1 1 5E08BFAC
 P 2000 2550
 F 0 "IC2" H 1471 2596 50  0000 R CNN
@@ -215,7 +215,7 @@ Wire Wire Line
 Wire Wire Line
 	2600 2650 3450 2650
 $Comp
-L Connector:AVR-ISP-6 JP1
+L ATtinyLCD-rescue:AVR-ISP-6-Connector JP1
 U 1 1 5E08DF28
 P 1750 4050
 F 0 "JP1" H 1471 4146 50  0000 R CNN
@@ -253,7 +253,7 @@ Wire Wire Line
 Wire Wire Line
 	2000 1100 2800 1100
 $Comp
-L Connector:Screw_Terminal_01x02 J1
+L ATtinyLCD-rescue:Screw_Terminal_01x02-Connector J1
 U 1 1 5E5CB843
 P 2200 4650
 F 0 "J1" H 2118 4867 50  0000 C CNN
@@ -264,7 +264,7 @@ F 3 "~" H 2200 4650 50  0001 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L power:+5V #PWR0109
+L ATtinyLCD-rescue:+5V-power #PWR0109
 U 1 1 5E5D7BED
 P 2400 4650
 F 0 "#PWR0109" H 2400 4500 50  0001 C CNN
@@ -275,7 +275,7 @@ F 3 "" H 2400 4650 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L power:GND #PWR0110
+L ATtinyLCD-rescue:GND-power #PWR0110
 U 1 1 5E5D8415
 P 2400 4750
 F 0 "#PWR0110" H 2400 4500 50  0001 C CNN
@@ -286,7 +286,7 @@ F 3 "" H 2400 4750 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Display_Character:NHD-0420H1Z U1
+L ATtinyLCD-rescue:NHD-0420H1Z-Display_Character U1
 U 1 1 5E5DD57F
 P 5950 2300
 F 0 "U1" H 5950 1411 50  0000 C CNN
@@ -331,7 +331,7 @@ Connection ~ 4100 2100
 Wire Wire Line
 	4100 1600 4100 2100
 $Comp
-L Device:R R2
+L ATtinyLCD-rescue:R-Device R2
 U 1 1 5E5FF9C7
 P 6500 2600
 F 0 "R2" V 6293 2600 50  0000 C CNN

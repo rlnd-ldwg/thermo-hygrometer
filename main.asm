@@ -24,8 +24,12 @@
 ; v1.0.2 2020-02-07: using sleep mode and watchdog for reactivation, new symbol for hearbeat
 ; v1.0.3 2020-02-11: wrong indication of negative temperature corrected, pinout change for better use of IPS header for enhancements
 ;                    adaptations for the 16x1 display which uses addresses from a 2-line display
+; v1.0.6 2021-02-14: display errors of single-digit values
+; to-do -> v1.1.0 2021-00-00: tendency für temperature & humidity / adaption for ATtiny85
+;          v2.0.0 DCF-77 clock
 
 .include "../inc/tn13def.inc"
+; .include "../inc/tn85def.inc"
 
 ;--------------------------------------------------------------------------------
 ; DHT22 sensor
@@ -177,7 +181,9 @@ main:
     clr rTemp1                ; to division factor 1
     out CLKPR, rTemp1
 
+; or ATtiny13
     ldi rTemp1, 1<<WDTIE | 1<<WDP3 | 0<<WDP1 | 0<<WDP0    ; ~2 sec
+; for ATtiny85    ldi rTemp1, 1<<WDIE | 1<<WDP3 | 0<<WDP1 | 0<<WDP0    ; ~2 sec
     out WDTCR, rTemp1
 
 ; debug
@@ -318,23 +324,23 @@ errorMsg:
     ldi rPointerH, hi8(SensorError)
 print:
 ; special 1-line display
-    set         ; T=1 2nd line
-    mDispCtrl 0b11000111
+    set         ; T=1 2nd line   ; special
+    mDispCtrl 0b11000111  ; special
     ldi rCtrl, _DATA
 next:
     lpm rData, Z+
     tst rData
 ; special 1-line display
-;   breq end
-    breq line1
+;   breq end    ; special
+    breq line1  ; special
     rcall writeLCD
     rjmp next
 ; special 1-line display
-line1:
-    brtc end
-    clt         ; T=0 1st line
-    mDispCtrl 0b10000111
-    rjmp next-2
+line1:        ; special
+    brtc end ; special
+    clt         ; T=0 1st line   ; special
+    mDispCtrl 0b10000111   ; special
+    rjmp next-2    ; special
 end:
     ret
 ;--------------------------------------------------------------------------------
@@ -427,8 +433,14 @@ jump:
     add rData, rModulo
     rcall writeLCD
     rcall divBy10       ; tens digit
+    tst rModulo         ; suppress leading zero
+    brne dig1
+    ldi rData, ' '      ; print space
+    rjmp print1
+dig1:
     ldi rData, 0x30
     add rData, rModulo
+print1:
     rcall writeLCD
 ; 1st line
     mDispCtrl 0b10000111
@@ -453,16 +465,21 @@ jump:
     rcall writeLCD
     rcall divBy10       ; tens digit
     tst rModulo         ; suppress leading zero
-    breq noprint
+    breq sign
     ldi rData, 0x30
     add rData, rModulo
     rcall writeLCD
-noprint:
+sign:
     ldi rData, '+'
     brtc notnegative
     ldi rData, '-'
 notnegative:
     rcall writeLCD
+    tst rModulo         ; temperature ist only one digit
+    brne return
+    ldi rData, ' '
+    rcall writeLCD
+return:
     ret
 
 .endfunc                ; readDHT

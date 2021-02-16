@@ -15,8 +15,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 MCU = attiny13
+# MCU = attiny85
 TARGET = stk500v2
-DEVICE = /dev/cu.SLAB_USBtoUART
+#DEVICE = /dev/cu.SLAB_USBtoUART
+DEVICE = /dev/ttyUSB0
 SPEED = 115200
 ifeq ($(OS),Windows_NT)
 	AVRTOOLCHAIN = c:/.../avr
@@ -31,6 +33,8 @@ else
 		AVRDUDEPATH = /Users/roland/.platformio/packages/tool-avrdude/
 	endif
 endif
+AVRTOOLCHAIN = /home/roland/.platformio/packages/toolchain-atmelavr/bin
+AVRDUDEPATH = /home/roland/.platformio/packages/tool-avrdude/
 
 AVRDUDECFG = $(AVRDUDEPATH)/avrdude.conf
 FUSES = -U lfuse:w:0x6a:m -U hfuse:w:0xff:m -U efuse:w:0xff:m
@@ -52,10 +56,10 @@ list: $(FILENAME).elf
 	$(AVRTOOLCHAIN)/avr-objdump -h -S $(FILENAME).elf > $(FILENAME).lst
 
 flash: $(FILENAME).hex
-	$(AVRDUDEPATH)/bin/avrdude -C $(AVRDUDECFG) -b $(SPEED) -c $(TARGET) -p $(MCU) -P $(DEVICE) -v -U flash:w:$(FILENAME).hex:i
+	$(AVRDUDEPATH)/avrdude $(param) -C $(AVRDUDECFG) -b $(SPEED) -c $(TARGET) -p $(MCU) -P $(DEVICE) -v -U flash:w:$(FILENAME).hex:i
 
 showfuses:
-	$(AVRDUDEPATH)/bin/avrdude -C $(AVRDUDECFG) -b $(SPEED) -c $(TARGET) -p $(MCU) -P $(DEVICE) -v 2>&1  |  grep "Fuses OK"
+	$(AVRDUDEPATH)/avrdude -C $(AVRDUDECFG) -b $(SPEED) -c $(TARGET) -p $(MCU) -P $(DEVICE) -v 2>&1  |  grep "Fuses OK"
 # |  grep "fuse reads" | tail -n2
 
 .PHONY: clean
